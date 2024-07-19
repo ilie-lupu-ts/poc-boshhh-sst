@@ -1,10 +1,12 @@
 import { StackContext, Api, NextjsSite } from "sst/constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import { Duration } from "aws-cdk-lib/core";
 
 export function API({ stack }: StackContext) {
-  const vpc = ec2.Vpc.fromLookup(stack, "VPC", { vpcName: "boshhh-vpc" });
+  const hostedZone = "ilie-lupu.com";
+  const customDomains = getCustomDomains(stack.stage, hostedZone);
+
+  const vpc = ec2.Vpc.fromLookup(stack, "VPC", { vpcName: "main-vpc" });
   const vpcPrivateSubnets = { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
 
   const layerChromium = new lambda.LayerVersion(stack, "chromiumLayers", {
@@ -18,9 +20,10 @@ export function API({ stack }: StackContext) {
         vpcSubnets: vpcPrivateSubnets,
       },
     },
+    customDomain: customDomains?.api,
     routes: {
       "GET /": "packages/functions/src/lambda.handler",
-      "GET /pdf": {
+      "POST /pdf": {
         function: {
           handler: "packages/functions/src/pdf.handler",
           layers: [layerChromium],
@@ -38,6 +41,7 @@ export function API({ stack }: StackContext) {
 
   const web = new NextjsSite(stack, "Site", {
     path: "packages/web",
+    customDomain: customDomains?.web,
     environment: {
       NEXT_PUBLIC_API_URL: api.url,
     },
@@ -47,4 +51,16 @@ export function API({ stack }: StackContext) {
     ApiEndpoint: api.url,
     WebUrl: web.url,
   });
+}
+
+function getCustomDomains(stage: string, hostedZone: string) {
+  const stages = ["prod", "dev"];
+  if (!stages.includes(stage)) {
+    return;
+  }
+
+  return {
+    api: stage === "prod" ? `api.${hostedZone}` : `api.${stage}.${hostedZone}`,
+    web: stage === "prod" ? hostedZone : `${stage}.${hostedZone}`,
+  };
 }

@@ -23,6 +23,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "puppeteer": "^22.13.1",
     "puppeteer-core": "^22.11.0"
   }
 }
