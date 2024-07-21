@@ -1,4 +1,6 @@
 import { ApiHandler } from "sst/node/api";
+import { Bucket } from "sst/node/bucket";
+import { Table } from "sst/node/table";
 
 export const handler = ApiHandler(async (_evt) => {
   try {
